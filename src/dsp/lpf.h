@@ -44,7 +44,7 @@ typedef boost::shared_ptr<lpf_ff> lpf_ff_sptr;
  * of raw pointers, lpf's constructor is private.
  * make_lpf is the public interface for creating new instances.
  */
-lpf_ff_sptr make_lpf_ff(double sample_rate=192000.,
+lpf_ff_sptr make_lpf_ff(double sample_rate=96000.,
                         double cutoff_freq=5000.,
                         double trans_width=1000.,
                         double gain=1.0);

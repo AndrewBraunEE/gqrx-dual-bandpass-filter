@@ -47,7 +47,7 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     filter = make_rx_filter(PREF_QUAD_RATE, -5000.0, 5000.0, 1000.0);
     filter1 =  make_rx_filter(PREF_QUAD_RATE, -5000.0, 5000.0, 1000.0);
     agc = make_rx_agc_cc(PREF_QUAD_RATE, true, -100, 0, 0, 500, false);
-    //agc1 = agc = make_rx_agc_cc(PREF_QUAD_RATE, true, -100, 0, 0, 500, false);
+    agc1 = make_rx_agc_cc(PREF_QUAD_RATE, true, -100, 0, 0, 500, false);
     sql = gr::analog::simple_squelch_cc::make(-150.0, 0.001);
     sql1 = gr::analog::simple_squelch_cc::make(-150.0, 0.001);
     meter = make_rx_meter_c(DETECTOR_TYPE_RMS);
@@ -85,10 +85,8 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     connect(iq_resamp1, 0, nb1, 0);
     connect(nb1, 0, filter1, 0);
     connect(filter1, 0, sql1, 0);
-
-    connect(null_source, 0, agc, 1);
-    connect(agc, 1, null_sink, 0);
-    connect(sql1, 0, demod1, 0);
+    connect(sql1, 0, agc1, 0);
+    connect(agc1, 0, demod1, 0);
 
     //Parameters if you remove the agc and the sql from the chain
     /*
@@ -221,38 +219,37 @@ void nbrx::set_sql_alpha(double alpha)
 void nbrx::set_agc_on(bool agc_on)
 {
     agc->set_agc_on(agc_on);
-    //agc1->set_agc_on(agc_on);
+    agc1->set_agc_on(agc_on);
 }
 
 void nbrx::set_agc_hang(bool use_hang)
 {
     agc->set_use_hang(use_hang);
-
-    //agc->set_use_hang(use_hang);
+    agc1->set_use_hang(use_hang);
 }
 
 void nbrx::set_agc_threshold(int threshold)
 {
     agc->set_threshold(threshold);
-    //agc1->set_threshold(threshold);
+    agc1->set_threshold(threshold);
 }
 
 void nbrx::set_agc_slope(int slope)
 {
     agc->set_slope(slope);
-    //agc1->set_slope(slope);
+    agc1->set_slope(slope);
 }
 
 void nbrx::set_agc_decay(int decay_ms)
 {
     agc->set_decay(decay_ms);
-    //agc1->set_decay(decay_ms);
+    agc1->set_decay(decay_ms);
 }
 
 void nbrx::set_agc_manual_gain(int gain)
 {
     agc->set_manual_gain(gain);
-    //agc1->set_manual_gain(gain);
+    agc1->set_manual_gain(gain);
 }
 
 void nbrx::set_demod(int rx_demod)
@@ -269,21 +266,21 @@ void nbrx::set_demod(int rx_demod)
     }
     //Disconnect AGC from FM Demodulator, then disconnect FM Demodulator from audio resampler or non-resampled self-output port 0 or 1
     disconnect(agc, 0, demod, 0);
-    disconnect(agc, 1, null_sink, 0);
+    disconnect(agc1, 0, demod1, 0);
     if (audio_rr){
         disconnect(demod, 0, audio_rr, 0);
         disconnect(demod1, 0, audio_rr1, 0);
         disconnect(audio_rr, 0, self(), 0); // left  channel
         disconnect(audio_rr, 0, self(), 1); // right channel
-        disconnect(audio_rr1, 0, self(), 2); // right channel
+        disconnect(audio_rr1, 0, self(), 2); // left channel
         disconnect(audio_rr1, 0, self(), 3); // right channel
     }
     else
     {
         disconnect(demod, 0, self(), 0);
-        disconnect(demod, 1, self(), 1);
+        disconnect(demod, 0, self(), 1);
         disconnect(demod1, 0, self(), 2);
-        disconnect(demod1, 1, self(), 3);
+        disconnect(demod1, 0, self(), 3);
     }
     demod1 = demod_fm1;
     switch (rx_demod) {
@@ -325,7 +322,7 @@ void nbrx::set_demod(int rx_demod)
     {
         // FIXME: DEMOD_NONE has two outputs.
         connect(agc, 0, demod, 0);
-        connect(agc, 1, null_sink, 0);
+        connect(agc1, 0, demod1, 0);
         connect(demod, 0, audio_rr, 0);
         connect(demod1, 0, audio_rr1, 0);
         connect(audio_rr, 0, self(), 0); // left  channel
@@ -336,21 +333,21 @@ void nbrx::set_demod(int rx_demod)
     else if (d_demod == NBRX_DEMOD_NONE)
     {
         connect(agc, 0, demod, 0);
-        connect(agc, 1, null_sink, 0);
+        connect(agc1, 0, demod1, 0);
         connect(demod, 0, self(), 0);
-        connect(demod, 1, self(), 1);
+        connect(demod, 0, self(), 1);
         connect(demod1, 0, self(), 2);
-        connect(demod1, 1, self(), 3);
+        connect(demod1, 0, self(), 3);
     }
     else
     {
         //Probably not necessary
         connect(agc, 0, demod, 0);
-        connect(agc, 1, null_sink, 0);
+        connect(agc1, 0, demod1, 0);
         connect(demod, 0, self(), 0);
-        connect(demod, 1, self(), 1);
+        connect(demod, 0, self(), 1);
         connect(demod1, 0, self(), 2);
-        connect(demod1, 1, self(), 3);
+        connect(demod1, 0, self(), 3);
     }
 
 }

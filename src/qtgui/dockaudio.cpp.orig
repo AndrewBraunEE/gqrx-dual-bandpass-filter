@@ -29,7 +29,6 @@
 DockAudio::DockAudio(QWidget *parent) :
     QDockWidget(parent),
     ui(new Ui::DockAudio),
-    custom_udp(false),
     autoSpan(true),
     rx_freq(144000000)
 {
@@ -59,10 +58,9 @@ DockAudio::DockAudio(QWidget *parent) :
     connect(audioOptions, SIGNAL(newRecDirSelected(QString)), this, SLOT(setNewRecDir(QString)));
     connect(audioOptions, SIGNAL(newUdpHost(QString)), this, SLOT(setNewUdpHost(QString)));
     connect(audioOptions, SIGNAL(newUdpPort(int)), this, SLOT(setNewUdpPort(int)));
-    connect(audioOptions, SIGNAL(newUdpPort1(int)), this, SLOT(setNewUdpPort1(int)));
 
     ui->audioSpectrum->setFreqUnits(1000);
-    ui->audioSpectrum->setSampleRate(96000);  // Full bandwidth
+    ui->audioSpectrum->setSampleRate(192000);  // Full bandwidth
     ui->audioSpectrum->setSpanFreq(12000);
     ui->audioSpectrum->setCenterFreq(0);
     ui->audioSpectrum->setPercent2DScreen(100);
@@ -77,7 +75,7 @@ DockAudio::DockAudio(QWidget *parent) :
     ui->audioSpectrum->setFreqDigits(1);
 
     ui->audioSpectrum1->setFreqUnits(1000);
-    ui->audioSpectrum1->setSampleRate(96000);  // Full bandwidth
+    ui->audioSpectrum1->setSampleRate(48000);  // Full bandwidth
     ui->audioSpectrum1->setSpanFreq(12000);
     ui->audioSpectrum1->setCenterFreq(0);
     ui->audioSpectrum1->setPercent2DScreen(100);
@@ -198,28 +196,13 @@ void DockAudio::on_audioGainSlider_valueChanged(int value)
     emit audioGainChanged(gain);
 }
 
-/*! \brief Set status of audio stream button. */
-void DockAudio::setAudioStreamButtonState(bool checked)
-{
-    if (checked == ui->audioStreamButton->isChecked()) {
-        /* nothing to do */
-        return;
-    }
-
-    ui->audioStreamButton->toggle();
-    on_audioStreamButton_clicked(checked);
-}
-
-
 /*! \brief Streaming button clicked.
  *  \param checked Whether streaming is ON or OFF.
  */
 void DockAudio::on_audioStreamButton_clicked(bool checked)
 {
-    if (checked){
+    if (checked)
         emit audioStreamingStarted(udp_host, udp_port);
-        emit audioStreamingStarted1(udp_host, udp_port1);
-    }
     else
         emit audioStreamingStopped();
 }
@@ -378,7 +361,7 @@ void DockAudio::saveSettings(QSettings *settings)
         settings->remove("udp_port");
 
 
-    if (udp_port1 != 7359)
+    if (udp_port1 != 7356)
         settings->setValue("udp_port1", udp_port1);
     else
         settings->remove("udp_port1");
@@ -425,34 +408,19 @@ void DockAudio::readSettings(QSettings *settings)
     audioOptions->setRecDir(rec_dir);
 
     // Audio streaming host and port
-    if(custom_udp) {
-            qDebug() << __func__ << "\e[94m" << "[ELFIN-dockaudio] " <<
-                "Using user-specified UDP information, ignoring settings" <<
-                "\e[0m";
-        } else {
-            // Only load from settings if we didn't specify a UDP host and port already
-            udp_host = settings->value("udp_host", "localhost").toString();
-            udp_port = settings->value("udp_port", 7355).toInt(&conv_ok);
-            udp_host1 = settings->value("udp_host1", "localhost").toString();
-            udp_port1 = settings->value("udp_port1", 7359).toInt(&conv_ok);
-            if (!conv_ok){
-                udp_port = 7355;
-                udp_port1 = 7359;
-            }
-        }
+    udp_host = settings->value("udp_host", "localhost").toString();
+    udp_port = settings->value("udp_port", 7355).toInt(&conv_ok);
+    udp_host1 = settings->value("udp_host1", "localhost").toString();
+    udp_port1 = settings->value("udp_port1", 7356).toInt(&conv_ok);
+    if (!conv_ok){
+        udp_port = 7355;
+        udp_port1 = 7356;
+    }
     audioOptions->setUdpHost(udp_host);
     audioOptions->setUdpPort(udp_port);
     audioOptions->setUdpPort1(udp_port1);
-    settings->endGroup();
-}
 
-void DockAudio::defineCustomUDP(QString host, int port)
-{
-    custom_udp = true;
-    udp_host = host;
-    udp_port = port;
-    qDebug() << __func__  << "\e[94m" << "[ELFIN-dockaudip] Using custom UDP at " << "\e[33m" << 
-        host << ":" << port << "\e[0m";
+    settings->endGroup();
 }
 
 void DockAudio::setNewPandapterRange(int min, int max)

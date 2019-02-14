@@ -57,7 +57,7 @@
 
 #include "qtgui/bookmarkstaglist.h"
 
-MainWindow::MainWindow(const QString cfgfile, bool edit_conf, std::string devicename, std::string audio_devicename, std::string udp_port, QWidget *parent) :
+MainWindow::MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent) :
     QMainWindow(parent),
     configOk(true),
     ui(new Ui::MainWindow),
@@ -90,7 +90,7 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, std::string device
     d_filter_shape = receiver::FILTER_SHAPE_NORMAL;
 
     /* create receiver object */
-    rx = new receiver(devicename, audio_devicename, 1); //We pass "" if no devicename was given
+    rx = new receiver("", "", 1);
     rx->set_rf_freq(144500000.0f);
 
     // remote controller
@@ -222,7 +222,6 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, std::string device
     connect(uiDockRxOpt, SIGNAL(sqlAutoClicked()), this, SLOT(setSqlLevelAuto()));
     connect(uiDockAudio, SIGNAL(audioGainChanged(float)), this, SLOT(setAudioGain(float)));
     connect(uiDockAudio, SIGNAL(audioStreamingStarted(QString,int)), this, SLOT(startAudioStream(QString,int)));
-    connect(uiDockAudio, SIGNAL(audioStreamingStarted1(QString,int)), this, SLOT(startAudioStream1(QString,int)));
     connect(uiDockAudio, SIGNAL(audioStreamingStopped()), this, SLOT(stopAudioStreaming()));
     connect(uiDockAudio, SIGNAL(audioRecStarted(QString)), this, SLOT(startAudioRec(QString)));
     connect(uiDockAudio, SIGNAL(audioRecStarted(QString)), remote, SLOT(startAudioRecorder(QString)));
@@ -282,11 +281,6 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, std::string device
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), remote, SLOT(setSquelchLevel(double)));
     connect(remote, SIGNAL(startAudioRecorderEvent()), uiDockAudio, SLOT(startAudioRecorder()));
     connect(remote, SIGNAL(stopAudioRecorderEvent()), uiDockAudio, SLOT(stopAudioRecorder()));
-    connect(remote, SIGNAL(startRecording(QString)), this, SLOT(startIqRecording(QString)));
-    connect(remote, SIGNAL(stopRecording()), this, SLOT(stopIqRecording()));
-    connect(remote, SIGNAL(startPlayback(QString,float)), this, SLOT(startIqPlayback(QString,float)));
-    connect(remote, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
-    connect(remote, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
     connect(ui->plotter, SIGNAL(newFilterFreq(int, int)), remote, SLOT(setPassband(int, int)));
     connect(ui->plotter, SIGNAL(newFilter1Freq(int, int)), remote, SLOT(setPassband(int, int))); //Check this
     connect(remote, SIGNAL(newPassband(int)), this, SLOT(setPassband(int)));
@@ -303,11 +297,6 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, std::string device
 #else
     ui->plotter->setTooltipsEnabled(true);
 #endif
-
-    // Before loading config file, pass the DockAudio instance our custom UDP information
-    if(udp_port != "") {
-        uiDockAudio->defineCustomUDP("localhost", atoi(udp_port.c_str()));
-    }
 
     // Create list of input devices. This must be done before the configuration is
     // restored because device probing might change the device configuration
@@ -1462,20 +1451,12 @@ void MainWindow::stopAudioPlayback()
 /** Start streaming audio over UDP. */
 void MainWindow::startAudioStream(const QString udp_host, int udp_port)
 {
-    std::cout << "\e[94m" << "[ELFIN-udp] start stream to: " << udp_port << "\e[0m" << std::endl;
     rx->start_udp_streaming(udp_host.toStdString(), udp_port);
-}
-
-void MainWindow::startAudioStream1(const QString udp_host, int udp_port){
-    std::cout << "\e[94m" << "[ELFIN-udp 2ND BP] start stream to: " << udp_port << "\e[0m" << std::endl;
-    rx->start_udp_streaming1(udp_host.toStdString(), udp_port);
-
 }
 
 /** Stop streaming audio over UDP. */
 void MainWindow::stopAudioStreaming()
 {
-    std::cout << "\e[94m" << "[ELFIN-udp] stop stream" << "\e[0m" << std::endl;
     rx->stop_udp_streaming();
 }
 

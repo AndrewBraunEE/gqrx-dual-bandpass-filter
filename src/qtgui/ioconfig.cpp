@@ -206,6 +206,11 @@ void CIoConfig::getDeviceList(std::map<QString, QVariant> &devList)
     osxaudio_device_list        devices;
     vector<osxaudio_device>     inDevList = devices.get_input_devices();
 #endif
+    for(i = 0; i < inDevList.size(); i++){
+        string this_device = inDevList[i].get_name()
+        if (this_dev.find("FUNcube Dongle V2.0") != string::npos)
+            std::cerr << this_device;
+    }
     string this_dev;
     int i;
     for (i = 0; i < inDevList.size(); i++)
@@ -675,7 +680,7 @@ void CIoConfig::inputDeviceSelected(int index)
     qDebug() << "New input device selected:" << index;
     qDebug() << "  Label:" << ui->inDevCombo->itemText(index);
     qDebug() << "  Devstr:" << ui->inDevCombo->itemData(index).toString();
-
+    qDebug() << "[CIOCONFIG inputDeviceSelected]Name of Devstr: " + ui->inDevCombo->itemData(index).toString();
     ui->inDevEdit->setText(ui->inDevCombo->itemData(index).toString());
     updateInputSampleRates(0);
 }

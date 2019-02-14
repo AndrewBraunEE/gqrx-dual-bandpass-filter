@@ -200,6 +200,7 @@ public:
     status      stop_audio_playback();
 
     status      start_udp_streaming(const std::string host, int port);
+    status      start_udp_streaming1(const std::string host, int port);
     status      stop_udp_streaming();
 
     /* I/Q recording and playback */

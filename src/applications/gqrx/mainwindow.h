@@ -58,7 +58,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent = 0);
+    explicit MainWindow(const QString cfgfile, bool edit_conf, std::string devicename, std::string audio_devicename, std::string udp_port, QWidget *parent = 0);
     ~MainWindow();
 
     bool loadConfig(const QString cfgfile, bool check_crash, bool restore_mainwindow);
@@ -172,6 +172,7 @@ private slots:
     void stopAudioPlayback();
 
     void startAudioStream(const QString udp_host, int udp_port);
+    void startAudioStream1(const QString udp_host, int udp_port); //Second BP
     void stopAudioStreaming();
 
     /* I/Q playback and recording*/

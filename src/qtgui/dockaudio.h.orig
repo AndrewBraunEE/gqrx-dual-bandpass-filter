@@ -57,9 +57,6 @@ public:
     void setAudioGain(int gain);
     int  audioGain();
 
-    void defineCustomUDP(QString host, int port);
-    void setAudioStreamButtonState(bool checked);
-
     void setAudioRecButtonState(bool checked);
     void setAudioPlayButtonState(bool checked);
 
@@ -82,8 +79,6 @@ signals:
 
     /*! \brief Audio streaming over UDP has started. */
     void audioStreamingStarted(const QString host, int port);
-
-    void audioStreamingStarted1(const QString host, int port); // Second BP, has to announce to UDP_sink that streaming has started.
 
     /*! \brief Audio streaming stopped. */
     void audioStreamingStopped();
@@ -128,8 +123,6 @@ private:
 
     QString        udp_host1;    //Second Bandpass
     int            udp_port1;
-
-    bool           custom_udp; /*! Whether to ignore the settings-loaded UDP info */
 
     bool           autoSpan;     /*! Whether to allow mode-dependent auto span. */
 

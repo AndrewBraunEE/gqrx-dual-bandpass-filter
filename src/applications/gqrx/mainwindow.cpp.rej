@@ -1,0 +1,13 @@
+--- a/src/applications/gqrx/mainwindow.cpp
++++ b/src/applications/gqrx/mainwindow.cpp
+@@ -333,6 +343,10 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent) :
+     }
+ 
+     qsvg_dummy = new QSvgWidget();
++
++    if(udp_port != "") {
++        uiDockAudio->setAudioStreamButtonState(true);
++    }
+ }
+ 
+ MainWindow::~MainWindow()

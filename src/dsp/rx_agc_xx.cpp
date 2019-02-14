@@ -41,8 +41,8 @@ rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on, int threshold,
 rx_agc_cc::rx_agc_cc(double sample_rate, bool agc_on, int threshold,
                      int manual_gain, int slope, int decay, bool use_hang)
     : gr::sync_block ("rx_agc_cc",
-          gr::io_signature::make(2, 2, sizeof(gr_complex)),
-          gr::io_signature::make(2, 2, sizeof(gr_complex))),
+          gr::io_signature::make(1, 1, sizeof(gr_complex)),
+          gr::io_signature::make(1, 1, sizeof(gr_complex))),
       d_agc_on(agc_on),
       d_sample_rate(sample_rate),
       d_threshold(threshold),
@@ -74,12 +74,8 @@ int rx_agc_cc::work(int noutput_items,
     const gr_complex *in = (const gr_complex *) input_items[0];
     gr_complex *out = (gr_complex *) output_items[0];
 
-    const gr_complex *in1 = (const gr_complex *) input_items[1];
-    gr_complex *out1 = (gr_complex *) output_items[1];
-
     boost::mutex::scoped_lock lock(d_mutex);
     d_agc->ProcessData(noutput_items, in, out);
-    d_agc->ProcessData(noutput_items, in1, out1);
 
     return noutput_items;
 }

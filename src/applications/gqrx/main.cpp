@@ -54,6 +54,9 @@ int main(int argc, char *argv[])
     QString         cfg_file;
     std::string     conf;
     std::string     style;
+    std::string     devicename;     //Should be in the format of "fcd=0 or fcd=1"
+    std::string     audio_devicename; //Should be in the format of "hw:1 / hw:0 etc."
+    std::string     udp_port;
     bool            clierr = false;
     bool            edit_conf = false;
     int             return_code;
@@ -81,6 +84,10 @@ int main(int argc, char *argv[])
             ("conf,c", po::value<std::string>(&conf), "Start with this config file")
             ("edit,e", "Edit the config file before using it")
             ("reset,r", "Reset configuration file")
+            ("device,d", po::value<std::string>(&devicename), "Specifies the device parameters to osmosdr")
+            ("audio_device,a", po::value<std::string>(&audio_devicename), "Specifies the output audio device parameters to RX instantiation (ALSA)")
+            ("udp_port,u", po::value<std::string>(&udp_port), "Specifies the UDP Audio Output and turns it on automatically (Input format: #)")
+            // ("reverse_audio_ports,z", "Reverses the USB Control, helpful when the wrong Audio Stream displays in GQRX")
     ;
 
     po::variables_map vm;
@@ -118,6 +125,10 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    cout << "\e[92m" << "ELFIN-GQRX v0.1: \e[94mGQRX Modified for the Electron Losses and Fields Investigation" << "\e[0m" << endl;
+    cout << "\e[94m" << "[ELFIN-params] device: " + devicename + " audio_device: " + audio_devicename + 
+        " udp_port: " + udp_port << "\e[0m" << endl << endl << endl;
+
     // check whether audio backend is functional
 #ifdef WITH_PORTAUDIO
     PaError     err = Pa_Initialize();
@@ -137,7 +148,7 @@ int main(int argc, char *argv[])
     pa_sample_spec ss;
 
     ss.format = PA_SAMPLE_FLOAT32LE;
-    ss.rate = 192000;
+    ss.rate = 96000;
     ss.channels = 2;
     test_sink =  pa_simple_new(NULL, "Gqrx Test", PA_STREAM_PLAYBACK, NULL,
                                "Test stream", &ss, NULL, NULL, &error);
@@ -172,7 +183,7 @@ int main(int argc, char *argv[])
     // Mainwindow will check whether we have a configuration
     // and open the config dialog if there is none or the specified
     // file does not exist.
-    MainWindow w(cfg_file, edit_conf);
+    MainWindow w(cfg_file, edit_conf, devicename, audio_devicename, udp_port);
 
     if (w.configOk)
     {

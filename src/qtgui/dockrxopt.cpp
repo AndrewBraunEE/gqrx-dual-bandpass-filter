@@ -414,8 +414,8 @@ void DockRxOpt::readSettings(QSettings *settings)
         int_val = settings->value("receiver/demod").toInt(&conv_ok);
     //BP Settings
     int bp_offs = 0;
-    if (settings->contains("receiver/bp_offset");
-        bp_offs = settings->value("receiver/bp_offset").toInt(&conv_ok));
+    if (settings->contains("receiver/bp_offset"))
+        bp_offs = settings->value("receiver/bp_offset").toInt(&conv_ok);
 
     setCurrentDemod(int_val);
     emit demodSelected(int_val);

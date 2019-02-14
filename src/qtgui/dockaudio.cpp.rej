@@ -1,0 +1,24 @@
+--- a/src/qtgui/dockaudio.cpp
++++ b/src/qtgui/dockaudio.cpp
+@@ -393,10 +407,17 @@ void DockAudio::readSettings(QSettings *settings)
+     audioOptions->setRecDir(rec_dir);
+ 
+     // Audio streaming host and port
+-    udp_host = settings->value("udp_host", "localhost").toString();
+-    udp_port = settings->value("udp_port", 7355).toInt(&conv_ok);
+-    if (!conv_ok)
+-        udp_port = 7355;
++    if(custom_udp) {
++        qDebug() << __func__ << "\e[94m" << "[ELFIN-dockaudio] " << 
++            "Using user-specified UDP information, ignoring settings" <<
++            "\e[0m";
++    } else {
++        // Only load from settings if we didn't specify a UDP host and port already
++        udp_host = settings->value("udp_host", "localhost").toString();
++        udp_port = settings->value("udp_port", 7355).toInt(&conv_ok);
++        if (!conv_ok)
++            udp_port = 7355;
++    }
+ 
+     audioOptions->setUdpHost(udp_host);
+     audioOptions->setUdpPort(udp_port);

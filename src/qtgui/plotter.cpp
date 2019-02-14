@@ -331,7 +331,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
             }
             else if (isPointCloseTo(pt.x(), m1_DemodFreqX, m_CursorCaptureDelta)){
                 // in move demod box center frequency region
-                if (CENTER1 != m_CursorCaptured)
+                if (CENTER1 != m_CursorCaptured && (m1_DemodCenterFreq >= m_DemodCenterFreq))
                     setCursor(QCursor(Qt::SizeHorCursor));
                 m_CursorCaptured = CENTER1;
                 if (m_TooltipsEnabled)
@@ -533,7 +533,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
         // moving inbetween demod lowcut and highcut region
         if (event->buttons() & Qt::LeftButton)
         {   // moving inbetween demod lowcut and highcut region with left button held
-            if (m_GrabPosition != 0)
+            if (m_GrabPosition != 0 && (m1_DemodCenterFreq > m_DemodCenterFreq))
             {
                 m1_DemodCenterFreq = roundFreq(freqFromX(pt.x() - m_GrabPosition),
                                               m_ClickResolution );

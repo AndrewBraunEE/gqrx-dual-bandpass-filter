@@ -102,8 +102,6 @@ signals:
     void newSquelchLevel(double level);
     void startAudioRecorderEvent();
     void stopAudioRecorderEvent();
-    void startRecording(QString filename);
-    void stopRecording();
 
 private slots:
     void acceptConnection();

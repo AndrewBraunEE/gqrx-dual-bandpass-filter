@@ -41,7 +41,7 @@ typedef boost::shared_ptr<sniffer_f> sniffer_f_sptr;
  * interface for creating new instances.
  *
  */
-sniffer_f_sptr make_sniffer_f(int buffsize=192000);
+sniffer_f_sptr make_sniffer_f(int buffsize=96000);
 
 
 /*! \brief Simple sink to allow accessing data in the flow graph.

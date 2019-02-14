@@ -627,11 +627,12 @@ QString RemoteControl::cmd_get_func(QStringList cmdlist)
     QString func = cmdlist.value(1, "");
 
     if (func == "?")
-        answer = QString("RECORD RECORD_IQ\n");
+        answer = QString("RECORD\n");
     else if (func.compare("RECORD", Qt::CaseInsensitive) == 0)
         answer = QString("%1\n").arg(audio_recorder_status);
     else
         answer = QString("RPRT 1\n");
+
     return answer;
 }
 
@@ -645,7 +646,7 @@ QString RemoteControl::cmd_set_func(QStringList cmdlist)
 
     if (func == "?")
     {
-        answer = QString("RECORD RECORD_IQ\n");
+        answer = QString("RECORD\n");
     }
     else if ((func.compare("RECORD", Qt::CaseInsensitive) == 0) && ok)
     {
@@ -661,24 +662,6 @@ QString RemoteControl::cmd_set_func(QStringList cmdlist)
                 emit startAudioRecorderEvent();
             else
                 emit stopAudioRecorderEvent();
-        }
-    }
-    else if ((func.compare("RECORD_IQ", Qt::CaseInsensitive) == 0) && ok)
-    {
-        if (rc_mode == 0)
-        {
-            answer = QString("RPRT 1\n");
-        }
-        else
-        {
-            answer = QString("RPRT 0\n");
-            if (status)
-            {
-                QString filename = cmdlist.value(3, "");
-                emit startRecording(filename);
-            }
-            else
-                emit stopRecording();
         }
     }
     else
