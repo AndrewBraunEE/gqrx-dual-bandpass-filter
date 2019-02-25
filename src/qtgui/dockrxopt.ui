@@ -824,7 +824,7 @@ This is an offset from the hardware RF frequency.&lt;/p&gt;&lt;/body&gt;&lt;/htm
    <sender>bandpassSpinBox</sender>
    <signal>valueChanged(double)</signal>
    <receiver>DockRxOpt</receiver>
-   <slot>BandpassChange(double)</slot>
+   <slot>bandpassChange(double)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>203</x>
@@ -839,6 +839,6 @@ This is an offset from the hardware RF frequency.&lt;/p&gt;&lt;/body&gt;&lt;/htm
  </connections>
  <slots>
   <signal>BandpassOffsetChanged(double)</signal>
-  <slot>BandpassChange(double)</slot>
+  <slot>bandpassChange(double)</slot>
  </slots>
 </ui>

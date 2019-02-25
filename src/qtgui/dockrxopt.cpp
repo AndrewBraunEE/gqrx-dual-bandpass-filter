@@ -366,7 +366,7 @@ void DockRxOpt::readSettings(QSettings *settings)
     if (conv_ok && dbl_val >= 0)
         demodOpt->setEmph(1.0e-6 * dbl_val); // was stored as usec
 
-    qint64 offs = settings->value("receiver/offset", 0).toInt(&conv_ok);
+    qint64 offs = settings->value("receiver/offset", 0).toDouble(&conv_ok);
     if (offs)
     {
         setFilterOffset(offs);

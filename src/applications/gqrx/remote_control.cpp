@@ -774,7 +774,7 @@ QString RemoteControl::cmd_lnb_lo(QStringList cmdlist)
 QString RemoteControl::cmd_BP_OFFS(QStringList cmdlist){
     if(cmdlist.size() == 2){
         bool ok;
-        qint64 freq = cmdlist[1].toDouble(&ok);
+        double freq = cmdlist[1].toDouble(&ok);
         if(ok){
             std::cout << freq << std::endl;
             emit newBandpassOffset(freq);
