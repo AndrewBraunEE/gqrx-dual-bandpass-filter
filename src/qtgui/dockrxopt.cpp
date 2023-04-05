@@ -24,7 +24,7 @@
 #include <QVariant>
 #include "dockrxopt.h"
 #include "ui_dockrxopt.h"
-
+#include <iostream>
 
 QStringList DockRxOpt::ModulationStrings;
 
@@ -413,9 +413,12 @@ void DockRxOpt::readSettings(QSettings *settings)
     if (settings->contains("receiver/demod"))
         int_val = settings->value("receiver/demod").toInt(&conv_ok);
     //BP Settings
-    int bp_offs = 0;
-    if (settings->contains("receiver/bp_offset"))
-        bp_offs = settings->value("receiver/bp_offset").toInt(&conv_ok);
+    double bp_offs = 0.0;
+    if (settings->contains("receiver/bp_offset")){
+        bp_offs = settings->value("receiver/bp_offset").toDouble(&conv_ok);
+        std::cout << "[BP_OFFS_SETTING]:" << (bp_offs) << std::endl;
+        bandpassChange(bp_offs);
+    }
 
     setCurrentDemod(int_val);
     emit demodSelected(int_val);
@@ -454,6 +457,13 @@ void DockRxOpt::saveSettings(QSettings *settings)
         settings->setValue("receiver/offset", offs);
     else
         settings->remove("receiver/offset");
+
+   double BP_offs = (ui->bandpassSpinBox->text().toDouble());
+   if (BP_offs)
+       settings->setValue("receiver/bp_offset", BP_offs);
+   else
+       settings->remove("receiver/bp_offset");
+
 
     qDebug() << __func__ << "*** FIXME_ SQL on/off";
     //int sql_lvl = double(ui->sqlSlider->value());  // note: dBFS*10 as int
@@ -498,6 +508,7 @@ void DockRxOpt::saveSettings(QSettings *settings)
         settings->setValue("receiver/agc_off", true);
     else
         settings->remove("receiver/agc_off");
+
 }
 
 /** RX frequency changed through spin box */

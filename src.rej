@@ -1,0 +1,328 @@
+--- gqrx/main.cpp
++++ gqrx/main.cpp
+@@ -54,6 +54,9 @@ int main(int argc, char *argv[])
+     QString         cfg_file;
+     std::string     conf;
+     std::string     style;
++    std::string     devicename;     //Should be in the format of "fcd=0 or fcd=1"
++    std::string     audio_devicename; //Should be in the format of "hw:1 / hw:0 etc."
++    std::string     udp_port;
+     bool            clierr = false;
+     bool            edit_conf = false;
+     int             return_code;
+@@ -81,6 +84,10 @@ int main(int argc, char *argv[])
+             ("conf,c", po::value<std::string>(&conf), "Start with this config file")
+             ("edit,e", "Edit the config file before using it")
+             ("reset,r", "Reset configuration file")
++            ("device,d", po::value<std::string>(&devicename), "Specifies the device parameters to osmosdr")
++            ("audio_device,a", po::value<std::string>(&audio_devicename), "Specifies the output audio device parameters to RX instantiation (ALSA)")
++            ("udp_port,u", po::value<std::string>(&udp_port), "Specifies the UDP Audio Output and turns it on automatically (Input format: #)")
++            // ("reverse_audio_ports,z", "Reverses the USB Control, helpful when the wrong Audio Stream displays in GQRX")
+     ;
+ 
+     po::variables_map vm;
+@@ -118,6 +125,10 @@ int main(int argc, char *argv[])
+         return 0;
+     }
+ 
++    cout << "\e[92m" << "ELFIN-GQRX v0.1: \e[94mGQRX Modified for the Electron Losses and Fields Investigation" << "\e[0m" << endl;
++    cout << "\e[94m" << "[ELFIN-params] device: " + devicename + " audio_device: " + audio_devicename + 
++        " udp_port: " + udp_port << "\e[0m" << endl << endl << endl;
++
+     // check whether audio backend is functional
+ #ifdef WITH_PORTAUDIO
+     PaError     err = Pa_Initialize();
+@@ -172,7 +183,7 @@ int main(int argc, char *argv[])
+     // Mainwindow will check whether we have a configuration
+     // and open the config dialog if there is none or the specified
+     // file does not exist.
+-    MainWindow w(cfg_file, edit_conf);
++    MainWindow w(cfg_file, edit_conf, devicename, audio_devicename, udp_port);
+ 
+     if (w.configOk)
+     {
+--- gqrx/mainwindow.cpp
++++ gqrx/mainwindow.cpp
+@@ -57,7 +57,7 @@
+ 
+ #include "qtgui/bookmarkstaglist.h"
+ 
+-MainWindow::MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent) :
++MainWindow::MainWindow(const QString cfgfile, bool edit_conf, std::string devicename, std::string audio_devicename, std::string udp_port, QWidget *parent) :
+     QMainWindow(parent),
+     configOk(true),
+     ui(new Ui::MainWindow),
+@@ -90,7 +90,7 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent) :
+     d_filter_shape = receiver::FILTER_SHAPE_NORMAL;
+ 
+     /* create receiver object */
+-    rx = new receiver("", "", 1);
++    rx = new receiver(devicename, audio_devicename, 1); //We pass "" if no devicename was given
+     rx->set_rf_freq(144500000.0f);
+ 
+     // remote controller
+@@ -275,6 +275,11 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent) :
+     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), remote, SLOT(setSquelchLevel(double)));
+     connect(remote, SIGNAL(startAudioRecorderEvent()), uiDockAudio, SLOT(startAudioRecorder()));
+     connect(remote, SIGNAL(stopAudioRecorderEvent()), uiDockAudio, SLOT(stopAudioRecorder()));
++    connect(remote, SIGNAL(startRecording(QString)), this, SLOT(startIqRecording(QString)));
++    connect(remote, SIGNAL(stopRecording()), this, SLOT(stopIqRecording()));
++    connect(remote, SIGNAL(startPlayback(QString,float)), this, SLOT(startIqPlayback(QString,float)));
++    connect(remote, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
++    connect(remote, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
+     connect(ui->plotter, SIGNAL(newFilterFreq(int, int)), remote, SLOT(setPassband(int, int)));
+     connect(remote, SIGNAL(newPassband(int)), this, SLOT(setPassband(int)));
+ 
+@@ -288,6 +293,11 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent) :
+     ui->plotter->setTooltipsEnabled(true);
+ #endif
+ 
++    // Before loading config file, pass the DockAudio instance our custom UDP information
++    if(udp_port != "") {
++        uiDockAudio->defineCustomUDP("localhost", atoi(udp_port.c_str()));
++    }
++
+     // Create list of input devices. This must be done before the configuration is
+     // restored because device probing might change the device configuration
+     CIoConfig::getDeviceList(devList);
+@@ -323,6 +333,10 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent) :
+     }
+ 
+     qsvg_dummy = new QSvgWidget();
++
++    if(udp_port != "") {
++        uiDockAudio->setAudioStreamButtonState(true);
++    }
+ }
+ 
+ MainWindow::~MainWindow()
+@@ -1429,12 +1443,14 @@ void MainWindow::stopAudioPlayback()
+ /** Start streaming audio over UDP. */
+ void MainWindow::startAudioStream(const QString udp_host, int udp_port)
+ {
++    std::cout << "\e[94m" << "[ELFIN-udp] start stream to: " << udp_port << "\e[0m" << std::endl;
+     rx->start_udp_streaming(udp_host.toStdString(), udp_port);
+ }
+ 
+ /** Stop streaming audio over UDP. */
+ void MainWindow::stopAudioStreaming()
+ {
++    std::cout << "\e[94m" << "[ELFIN-udp] stop stream" << "\e[0m" << std::endl;
+     rx->stop_udp_streaming();
+ }
+ 
+--- gqrx/mainwindow.h
++++ gqrx/mainwindow.h
+@@ -58,7 +58,7 @@ class MainWindow : public QMainWindow
+     Q_OBJECT
+ 
+ public:
+-    explicit MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent = 0);
++    explicit MainWindow(const QString cfgfile, bool edit_conf, std::string devicename, std::string audio_devicename, std::string udp_port, QWidget *parent = 0);
+     ~MainWindow();
+ 
+     bool loadConfig(const QString cfgfile, bool check_crash, bool restore_mainwindow);
+--- gqrx/receiver.cpp
++++ gqrx/receiver.cpp
+@@ -197,6 +197,9 @@ void receiver::stop()
+  */
+ void receiver::set_input_device(const std::string device)
+ {
++    std::cout << "\e[94m" << "[ELFIN-receiver] " <<
++        "Set input device " + device << "\e[0m" << std::endl;
++
+     if (device.empty())
+         return;
+ 
+@@ -230,7 +233,7 @@ void receiver::set_input_device(const std::string device)
+     }
+ 
+     src.reset();
+-    src = osmosdr::source::make(device);
++    src = osmosdr::source::make(device); //IF the bug exists, it probably exists here
+     if(src->get_sample_rate() != 0)
+         set_input_rate(src->get_sample_rate());
+ 
+@@ -252,6 +255,9 @@ void receiver::set_input_device(const std::string device)
+ /** Select new audio output device. */
+ void receiver::set_output_device(const std::string device)
+ {
++    std::cout << "\e[94m" << "[ELFIN-receiver] " <<
++        "Set output device " + device << "\e[0m" << std::endl;
++
+     if (output_devstr.compare(device) == 0)
+     {
+ #ifndef QT_NO_DEBUG_OUTPUT
+--- gqrx/remote_control.cpp
++++ gqrx/remote_control.cpp
+@@ -620,12 +620,11 @@ QString RemoteControl::cmd_get_func(QStringList cmdlist)
+     QString func = cmdlist.value(1, "");
+ 
+     if (func == "?")
+-        answer = QString("RECORD\n");
++        answer = QString("RECORD RECORD_IQ\n");
+     else if (func.compare("RECORD", Qt::CaseInsensitive) == 0)
+         answer = QString("%1\n").arg(audio_recorder_status);
+     else
+         answer = QString("RPRT 1\n");
+-
+     return answer;
+ }
+ 
+@@ -639,7 +638,7 @@ QString RemoteControl::cmd_set_func(QStringList cmdlist)
+ 
+     if (func == "?")
+     {
+-        answer = QString("RECORD\n");
++        answer = QString("RECORD RECORD_IQ\n");
+     }
+     else if ((func.compare("RECORD", Qt::CaseInsensitive) == 0) && ok)
+     {
+@@ -657,6 +656,24 @@ QString RemoteControl::cmd_set_func(QStringList cmdlist)
+                 emit stopAudioRecorderEvent();
+         }
+     }
++    else if ((func.compare("RECORD_IQ", Qt::CaseInsensitive) == 0) && ok)
++    {
++        if (rc_mode == 0)
++        {
++            answer = QString("RPRT 1\n");
++        }
++        else
++        {
++            answer = QString("RPRT 0\n");
++            if (status)
++            {
++                QString filename = cmdlist.value(3, "");
++                emit startRecording(filename);
++            }
++            else
++                emit stopRecording();
++        }
++    }
+     else
+     {
+         answer = QString("RPRT 1\n");
+--- gqrx/remote_control.h
++++ gqrx/remote_control.h
+@@ -100,6 +100,8 @@ signals:
+     void newSquelchLevel(double level);
+     void startAudioRecorderEvent();
+     void stopAudioRecorderEvent();
++    void startRecording(QString filename);
++    void stopRecording();
+ 
+ private slots:
+     void acceptConnection();
+--- dockaudio.cpp
++++ dockaudio.cpp
+@@ -29,6 +29,7 @@
+ DockAudio::DockAudio(QWidget *parent) :
+     QDockWidget(parent),
+     ui(new Ui::DockAudio),
++    custom_udp(false),
+     autoSpan(true),
+     rx_freq(144000000)
+ {
+@@ -173,6 +174,19 @@ void DockAudio::on_audioGainSlider_valueChanged(int value)
+     emit audioGainChanged(gain);
+ }
+ 
++/*! \brief Set status of audio stream button. */
++void DockAudio::setAudioStreamButtonState(bool checked)
++{
++    if (checked == ui->audioStreamButton->isChecked()) {
++        /* nothing to do */
++        return;
++    }
++
++    ui->audioStreamButton->toggle();
++    on_audioStreamButton_clicked(checked);
++}
++
++
+ /*! \brief Streaming button clicked.
+  *  \param checked Whether streaming is ON or OFF.
+  */
+@@ -379,10 +393,17 @@ void DockAudio::readSettings(QSettings *settings)
+     audioOptions->setRecDir(rec_dir);
+ 
+     // Audio streaming host and port
+-    udp_host = settings->value("udp_host", "localhost").toString();
+-    udp_port = settings->value("udp_port", 7355).toInt(&conv_ok);
+-    if (!conv_ok)
+-        udp_port = 7355;
++    if(custom_udp) {
++        qDebug() << __func__ << "\e[94m" << "[ELFIN-dockaudio] " << 
++            "Using user-specified UDP information, ignoring settings" <<
++            "\e[0m";
++    } else {
++        // Only load from settings if we didn't specify a UDP host and port already
++        udp_host = settings->value("udp_host", "localhost").toString();
++        udp_port = settings->value("udp_port", 7355).toInt(&conv_ok);
++        if (!conv_ok)
++            udp_port = 7355;
++    }
+ 
+     audioOptions->setUdpHost(udp_host);
+     audioOptions->setUdpPort(udp_port);
+@@ -390,6 +411,15 @@ void DockAudio::readSettings(QSettings *settings)
+     settings->endGroup();
+ }
+ 
++void DockAudio::defineCustomUDP(QString host, int port)
++{
++    custom_udp = true;
++    udp_host = host;
++    udp_port = port;
++    qDebug() << __func__  << "\e[94m" << "[ELFIN-dockaudip] Using custom UDP at " << "\e[33m" << 
++        host << ":" << port << "\e[0m";
++}
++
+ void DockAudio::setNewPandapterRange(int min, int max)
+ {
+     ui->audioSpectrum->setPandapterRange(min, max);
+--- dockaudio.h
++++ dockaudio.h
+@@ -57,6 +57,9 @@ public:
+     void setAudioGain(int gain);
+     int  audioGain();
+ 
++    void defineCustomUDP(QString host, int port);
++    void setAudioStreamButtonState(bool checked);
++
+     void setAudioRecButtonState(bool checked);
+     void setAudioPlayButtonState(bool checked);
+ 
+@@ -118,6 +121,8 @@ private:
+     QString        udp_host;     /*! UDP client host name. */
+     int            udp_port;     /*! UDP client port number. */
+ 
++    bool           custom_udp; /*! Whether to ignore the settings-loaded UDP info */
++
+     bool           autoSpan;     /*! Whether to allow mode-dependent auto span. */
+ 
+     qint64         rx_freq;      /*! RX frequency used in filenames. */
+--- ioconfig.cpp
++++ ioconfig.cpp
+@@ -206,6 +206,11 @@ void CIoConfig::getDeviceList(std::map<QString, QVariant> &devList)
+     osxaudio_device_list        devices;
+     vector<osxaudio_device>     inDevList = devices.get_input_devices();
+ #endif
++    for(i = 0; i < inDevList.size(); i++){
++        string this_device = inDevList[i].get_name()
++        if (this_dev.find("FUNcube Dongle V2.0") != string::npos)
++            std::cerr << this_device;
++    }
+     string this_dev;
+     int i;
+     for (i = 0; i < inDevList.size(); i++)
+@@ -675,7 +680,7 @@ void CIoConfig::inputDeviceSelected(int index)
+     qDebug() << "New input device selected:" << index;
+     qDebug() << "  Label:" << ui->inDevCombo->itemText(index);
+     qDebug() << "  Devstr:" << ui->inDevCombo->itemData(index).toString();
+-
++    qDebug() << "[CIOCONFIG inputDeviceSelected]Name of Devstr: " + ui->inDevCombo->itemData(index).toString();
+     ui->inDevEdit->setText(ui->inDevCombo->itemData(index).toString());
+     updateInputSampleRates(0);
+ }

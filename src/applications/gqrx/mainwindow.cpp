@@ -343,8 +343,13 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, std::string device
         }
     }
 
+    if(udp_port != "") {
+            uiDockAudio->setAudioStreamButtonState(true);
+     }
+
     qsvg_dummy = new QSvgWidget();
     set_bandpass_offset(uiDockRxOpt->getBandpassDifference());
+    this->ReloadIOSettings(); //To fix GQRX Bug where not reloading the IO Config causes the second filter to not work.
 }
 
 MainWindow::~MainWindow()
@@ -1796,6 +1801,22 @@ void MainWindow::on_actionDSP_triggered(bool checked)
  * configurator using the OK button, the new configuration is read and
  * sent to the receiver.
  */
+
+void MainWindow::ReloadIOSettings(){
+    if (ui->actionDSP->isChecked())
+        // suspend DSP while we reload settings
+        on_actionDSP_triggered(false);
+
+    // Refresh LNB LO in dock widget, otherwise changes will be lost
+    uiDockInputCtl->readLnbLoFromSettings(m_settings);
+    storeSession();
+    loadConfig(m_settings->fileName(), false, false);
+
+    if (ui->actionDSP->isChecked())
+        // restart DSP
+        on_actionDSP_triggered(true);
+}
+
 int MainWindow::on_actionIoConfig_triggered()
 {
     qDebug() << "Configure I/O devices.";

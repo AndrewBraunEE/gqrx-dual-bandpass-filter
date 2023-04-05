@@ -116,7 +116,6 @@ private slots:
     void setNewUdpPort(int port);
     void setNewUdpPort1(int port); //Second Bandpass
 
-
 private:
     Ui::DockAudio *ui;
     CAudioOptions *audioOptions; /*! Audio options dialog. */
