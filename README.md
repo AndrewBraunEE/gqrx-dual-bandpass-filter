@@ -8,6 +8,12 @@ which can then be forwarded to DireWolf, a AX.25 Packet Demodulator, and from th
 we can collect our decoded communications data. (Usually science data, but also 
 interfaced with our ground-station command & control software).
 
+Unfortunately our team (ELFIN) used SVN to version-control this software, with
+git history tracking the initial commit.
+
+If you'd like to rebase this feature on the latest mainline of Csete's repository,
+you can probably write a script like so https://stackoverflow.com/questions/6388283/git-how-can-i-find-a-commit-that-most-closely-matches-a-directory
+and find the diff patch that has the least amount of code changes detected.
 
 Gqrx
 ====
